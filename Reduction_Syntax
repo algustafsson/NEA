@@ -1,0 +1,11 @@
+# There are 3 steps to reduce the LMI datasets:
+# 1) Create a master bias. 
+# 2) Bias Subtract the flats and create a normalized flat field. 
+# 3) Bias subtract and flatfield the data.
+
+
+makedark.py /Bias/*.fits
+
+makeflat.py ../Bias/masterdark.fits /Flats/*.fits
+
+reduce.py -dark ../Bias/masterdark.fits -flat ../Flats/masterflat.fits DCTLMI /obj/*.fits
