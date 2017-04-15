@@ -4,4 +4,8 @@ This is a Parallels VM running 64 bit Ubuntu 20, 2 Gb RAM is set currently (PP d
 
 Vartools has been installed in /usr/local (bin,lib,...) so can be executed from anywwhere.
 
+If you don't use Parallels, use this link (VirtualBox ready):
+https://www.dropbox.com/s/fad71y1yj6bzy9p/UbuntuAST520S17.zip?dl=0
+
+IF you happen to use Parallels, use this link:
 https://www.dropbox.com/s/9463rlq37ogwneu/AST520%20PP%20Ubuntu%20Linux%2016.04%20Desktop.pvm.zip?dl=0
