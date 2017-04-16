@@ -1,0 +1,17 @@
+#                          filename    julian_date ast_mag ast_sig        ast_ra       ast_dec    [1]   [2]    [3]   [4]    [5]       ZP ZP_sig inst_mag in_sig   [6] [7] [8] [9]
+                     rlmi.0124.ldac 2457722.8348516  20.8837 0.0376   30.20845135  +13.94540095  0.07 -0.04  0.00  0.00 60.00  29.7749 0.0210  -8.8912 0.0312 SDSS-R9_transformed V   2 DCTLMI
+                     rlmi.0125.ldac 2457722.8358201  20.8450 0.0391   30.20838124  +13.94535260  0.03 -0.08  0.00  0.00 60.00  29.6772 0.0210  -8.8321 0.0330 SDSS-R9_transformed V   0 DCTLMI
+                     rlmi.0126.ldac 2457722.8367895  20.8598 0.0384   30.20831667  +13.94530510 -0.02 -0.09  0.00  0.00 60.00  29.7360 0.0217  -8.8761 0.0316 SDSS-R9_transformed V   0 DCTLMI
+                     rlmi.0127.ldac 2457722.8377580  20.8610 0.0383   30.20823050  +13.94525239 -0.00 -0.08  0.00  0.00 60.00  29.7165 0.0209  -8.8554 0.0321 SDSS-R9_transformed V   2 DCTLMI
+                     rlmi.0129.ldac 2457722.8396953  20.9236 0.0437   30.20808980  +13.94516473 -0.07 -0.13  0.00  0.00 60.00  29.5947 0.0221  -8.6711 0.0377 SDSS-R9_transformed V   2 DCTLMI
+                     rlmi.0128.ldac 2457722.8387266  20.9031 0.0404   30.20815758  +13.94519294 -0.03 -0.05  0.00  0.00 60.00  29.6833 0.0212  -8.7801 0.0343 SDSS-R9_transformed V   0 DCTLMI
+                     rlmi.0130.ldac 2457722.8433212  21.0121 0.0422   30.20775686  +13.94496419  0.08 -0.12  0.00  0.00 60.00  29.7209 0.0210  -8.7088 0.0366 SDSS-R9_transformed V   3 DCTLMI
+#
+# [1]: Horizons_RA - image_RA [arcsec]
+# [2]: Horizons_DDec - image_Dec [arcsec]
+# [3,4]: manual target offsets in RA and DEC [arcsec]
+# [5]: exposure time (s)
+# [6]: photometric catalog
+# [7]: photometric band
+# [8]: Source Extractor flag
+# [9]: telescope/instrument
