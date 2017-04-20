@@ -1,8 +1,11 @@
 ##### Minor Planet Center Submission Format #####
 
-Minor_Planet_Num. Temp_Designation  Observation_Date  RA  DEC MAG Filter  Obs_Code
+Observations:
+Minor_Planet_Num. Temp_Designation  Observation_Date                       RA  DEC MAG Filter  Obs_Code
+"blank"             T_"obj-name"    "month"  "day+Julian-decimal-time"                             "G37"
 
-
+Observer details:
+G37 Discovery Channel Telescope. Observer Audrey Thirouin.  4.30-m f/2.3 Ritchey-Chretien + CCD.
 
 
 ##### EXAMPLE: #####
