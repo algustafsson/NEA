@@ -1,7 +1,0 @@
-file = open('/home/parallels/photometry_3199.dat.txt.varformat.txt')
-
-print(file)
-magnitudes = file[:][1]
-
-print(magnitudes)
-
