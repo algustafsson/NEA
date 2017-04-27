@@ -1,6 +1,8 @@
 # 4/13/17 COC: take Photometry Pipeline output and convert into 
 # Vartools desired format, including changing JD to JD-J0 where
 # I chose J0 to be the integer (pre-decimal) part of the 1st JD
+# I successfully analyzed LCs via vartools with this command:
+# vartools -i photometry_3199.dat.txt.varformat -inputlcformat t:1,mag:2,err:3-rm -LS 0.1 30. 0.1 4 0 -o tmp.lc -oneline
 
 import argparse#parse command line arguments 4/13/17 COC
 import os
@@ -55,5 +57,5 @@ def ParsePPlc(ppFile):
 
 #ParsePPlc(TestFile)
 
-for arg in args:
+for arg in args.objects:#corrected command-line argument parsing 4/26/17 COC
 	ParsePPlc(arg)
