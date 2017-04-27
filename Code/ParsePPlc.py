@@ -3,7 +3,7 @@
 # I chose J0 to be the integer (pre-decimal) part of the 1st JD
 # I successfully analyzed LCs via vartools with this command:
 # vartools -i photometry_3199.dat.txt.varformat -inputlcformat t:1,mag:2,err:3-rm -LS 0.1 30. 0.1 4 0 -o tmp.lc -oneline
-# command line usage: python ParsePPlc.py lightcurve.dat
+# command line usage in Python3: python ParsePPlc.py lightcurve.dat
 
 import argparse#parse command line arguments 4/13/17 COC
 import os
