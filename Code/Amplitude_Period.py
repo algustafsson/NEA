@@ -15,6 +15,8 @@
 ## Import all necessary packages ##
 ###################################
 import numpy as np
+import os
+import glob
 
 ###################################
 ######## Import Data File #########
@@ -98,5 +100,15 @@ f.write(header2)
 f.write(data_row)
 
 f.close()
+
+###################################
+### Move output to new folder ####
+###################################
+
+LMIdata_dir = "/common/contrib/classroom/ast520/LMIdata/"
+os.mkdir(LMIdata_dir+'/LCanalysis')
+
+for filename in glob.iglob('LCanalysis_*.txt'):
+    os.rename(filename,LMIdata_dir+'/LCanalysis/'+filename)
 
 
