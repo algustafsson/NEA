@@ -1,289 +1,392 @@
-""" Amplitude_Period
-	v1.2: 2017-05-04,  ag765@nau.edu, A. Gustafsson & arw366@nau.edu, A. Weintraub & orion@nau.edu, Colin Orion Chandler
-	
-	This script loads in the output from ParsePPlc.py lightcurve data and determines the lower limit on both the amplitude and period.
-	
-	To use, enter on the command line:
-	python Amplitude_Period.py
-	
-	requires:
-	- numpy
-	
-	"""
-
-###################################
-## Import all necessary packages ##
-###################################
-import numpy as np
-import os.path
+from __future__ import print_function#4/27/17 COC: for Python 2.7 backwards compatability
+import argparse#parse command line arguments 4/13/17 COC
+import os
 import glob
-import shutil
 
-AnnikaLocal = False#flag to work locally on Annika's system
+DownloadPath = '/scratch/coc25/LMIdata/LMIfinal/'#'/Volumes/Moon/Keck/Downloads/'
+BasePath = DownloadPath
 
-try:
-	from A520utils.py import *#yeah yeah, it's not the cleanest, but it's the leanest, we're in a rush! 5/4/17 COC
-	COCok = True
-except:
-	COCok = False
+BaseOutputFolder = '/common/contrib/classroom/ast520/output/'
 
-###################################
-######## Import Data File #########
-###################################
 
-if COCok == False or AnnikaLocal == True:
-	LMIdata_dir = "/Volumes/Seagate/Research/Trilling/DCT/LMI/"
-	directories = [LMIdata_dir+"160530/", LMIdata_dir+"161129/", LMIdata_dir+"170325/", LMIdata_dir+"170403/"]
-	directory_filter = LMIdata_dir+"150920/" ##Multiple filters, handle differently
-
-if COCok == True and AnnikaLocal == False:
-	print('Setting LMIdata_dir=' + str(BasePath))
-	LMIdata_dir = BasePath#from the A520utils.py file 5/4/17 COC
-	directories = GetFinishedTaskDirs(ThisTask='pp_distill')
-
-for directory in directories:
-	object = os.listdir(directory)
-	for pointing in object:
-		if pointing.startswith(('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
+def CrawlTree(directory):
+	'''
+	4/19/2017 Colin Orion Chandler
+	Crawl a directory structure and create a dictionary of dictionaries.
+	Each child dictionary will have the file shortname (filename only) and folder (directory) path as dictionary items.
+	4/20/17 COC: added targetmode pair outermost folders to target names, so simply find first TARGNAME in a tree, then move on to the next directory.
+	'''
+	FolderList = []
+	AllFits = {}
+	a = os.walk(directory)
+	CrawlCount = 0
+	TotCrawlCount = 0
+#	print('a: ' + str(a))
+	for folder in a:
+		CrawlCount += 1
+		TotCrawlCount += 1
+		if CrawlCount == 100:
+			print(str(time.asctime()) + ': Crawled ' + str(TotCrawlCount) + ' folders thus far...')
+			CrawlCount = 0
+		if '/.' in folder[0]:#skip hidden directories (note 5/2/17 COC)
 			pass
-			true_object = pointing
-			object_dir = directory + true_object + "/"
-			for filename in os.listdir(object_dir):
-				data = directory + true_object + "/" + "photometry_" + true_object + ".dat.varformat"
-				if os.path.exists(data) == True:
-					time,mag,err = np.loadtxt(data,unpack=True)
-				else:
+		else:
+			FolderList.append(folder[0])
+	return(FolderList)
+
+def ThisFilePath():#this is the path of this Python file 4/13/17 COC
+	return(str(os.path.dirname(os.path.realpath(__file__))) + '/')
+#print(ThisFilePath())
+
+def BeginTable(outputfile):
+	try:
+		os.remove(outputfile + '.bak')
+	except:
+		pass
+	try:
+		os.rename(outputfile,outputfile + '.bak')
+	except:
+		pass
+	with open (outputfile,'a') as f:
+		print('<html>',file=f)
+		print('<!-- From HZG originally 5/6/17 COC -->',file=f)
+		print('<head>',file=f)
+		print('',file=f)
+		print('<title>A520 Results</title>',file=f)
+		print('',file=f)
+		print('<script src="sorttable.js"></script>',file=f)
+		print('',file=f)
+		print('<script src="jquery-1.4.2.min.js"></script>',file=f)
+		print('<script src="jquery.thead-1.1.min.js"></script>',file=f)
+		print('',file=f)
+		print('<style type="text/css">',file=f)
+		print('th{font-family: arial, arial narrow, helvetica}',file=f)
+		print('td{font-family: arial, arial narrow, helvetica}',file=f)
+		print('</style>',file=f)
+		print('',file=f)
+		print('</head>',file=f)
+		print('',file=f)
+		print('<body bgcolor="#000000" text="#FFFFFF" link="#FFFFFF" vlink="8888FF">',file=f)
+		print('',file=f)
+		print('<!-- <center> -->',file=f)
+		print('<!-- <img src="title.gif" width=800> -->',file=f)
+		print('<!-- </center> -->',file=f)
+		print('',file=f)
+		print('<center>',file=f)
+		print('',file=f)
+		print('<div>',file=f)
+		print('',file=f)
+		print('<table width=900 border=0 cellpadding=5 class="sortable jquery-thead">',file=f)
+		print('',file=f)
+		print('<thead>',file=f)
+#		print('<tr bgcolor="#000000">',file=f)
+		print('<tr bgcolor="#033333">',file=f)
+		print('<!-- Table column headers 5/6/17 COC -->',file=f)
+		print('<th><b>TargetID</b></th>',file=f)
+		print('<th><b>FinalStatus</b></th>',file=f)
+		print('<th><b>Folder</b></th>',file=f)
+		print('<th><b>.diagnostics Link</b></th>',file=f)
+		print('<th><b>pp_run Status</b></th>',file=f)
+		print('<th><b>pp_run ldac count</b></th>',file=f)
+		print('<th><b>pp_ident</b></th>',file=f)
+		print('<th><b>pp_ident phot count</b></th>',file=f)
+		print('<th><b>pp_distill Status</b></th>',file=f)
+		print('<th><b>pp_distill LC count</b></th>',file=f)
+		print('<th><b>pp_parse Status</b></th>',file=f)
+		print('<th><b>pp_parse .varformat count</b></th>',file=f)
+		print('<th><b>AmpPer Status</b></th>',file=f)
+		print('<th><b>AmpPer Count</b></th>',file=f)
+		print('<th><b>Vartools Status</b></th>',file=f)
+		print('<th><b>TMP Count</b></th>',file=f)
+		print('<th><b>Scratch Count</b></th>',file=f)
+		print('<th><b>VarFinal Count</b></th>',file=f)
+		print('<th><b>LC Link</b></th>',file=f)
+		print('<!-- <th><b>T<sub>eq</sub><sup>a</sup> (K)</b></th> -->',file=f)
+		print('</tr>',file=f)
+		print('</thead>',file=f)
+		print('',file=f)
+		print('<!-- Begin table rows here -->',file=f)
+		print('',file=f)
+
+def RowEntry(SomeString):
+	return('<td>' + str(SomeString) + '</td>')
+
+def WriteRow(OutputFile,
+			ID,
+			FinalStatus,
+			Folder,
+			DiagLink,
+			pp_runStatus,
+			pp_runCount,
+			pp_identStatus,
+			pp_identCount,
+			pp_distillStatus,
+			pp_distill_LC_count,
+			pp_parseStatus,
+			pp_parse_varformatCount,
+			AmpPerStatus,
+			AmpPerCount,
+			VarToolsStatus,
+			VartoolsTmpCount,
+			VarStatCount,
+			VarFinalCount,
+			lcLink):
+	with open(OutputFile,'a') as f:
+		print('',file=f)
+		print(RowEntry(ID),file=f)
+		print(RowEntry(FinalStatus),file=f)
+		print(RowEntry(Folder),file=f)
+		print(RowEntry(DiagLink),file=f)
+		print(RowEntry(pp_runStatus),file=f)
+		print(RowEntry(pp_runCount),file=f)
+		print(RowEntry(pp_identStatus),file=f)
+		print(RowEntry(pp_identCount),file=f)
+		print(RowEntry(pp_distillStatus),file=f)
+		print(RowEntry(pp_distill_LC_count),file=f)
+		print(RowEntry(pp_parseStatus),file=f)
+		print(RowEntry(pp_parse_varformatCount),file=f)
+		print(RowEntry(AmpPerStatus),file=f)
+		print(RowEntry(AmpPerCount),file=f)
+		print(RowEntry(VarToolsStatus),file=f)
+		print(RowEntry(VartoolsTmpCount),file=f)
+		print(RowEntry(VarStatCount),file=f)
+		print(RowEntry(VarFinalCount),file=f)
+		print(RowEntry(lcLink),file=f)
+		print('</tr>',file=f)
+		print('',file=f)
+
+
+def FinishTable(outputfile):
+	with open(outputfile,'a') as f:
+		print('<!-- End table rows here -->',file=f)
+		print('',file=f)
+		print('</table>',file=f)
+		print('',file=f)
+		print('</div>',file=f)
+		print('',file=f)
+		print('</center>',file=f)
+		print('',file=f)
+		print('</body>',file=f)
+		print('',file=f)
+		print('</html>',file=f)
+
+def GetJobWorkDir(JobFile):
+	'''Extract the job (working) directory from the output file.'''#5/6/17 COC: copied from ppTaskCrawler.py
+	with open(JobFile,'r') as f:
+		for line in f:#.iter_lines():
+			if line:
+				line = line.strip()#remove newlines
+				if line.strip() == '':
 					pass
+				else:
+					if BasePath in line:
+						return(line)
+	return(False)
 
-			###################################
-			###### Determine # of Points ######
-			###################################
-			Length = len(mag)
-			print("--- There are %d exposures ---" % Length)
-			number = int(0.1*Length)
-			if number == 1:
-				number = 2
-			if number == 0:
-				number = 1
+def GetAllTargets(OutputFolder):
+	FolderList = CrawlTree(OutputFolder)
+	AllTargetDict = {}
+	for Folder in FolderList:
+		FolderParts = Folder.split('/')
+#		print('FolderParts: ' + str(FolderParts))
+		if Folder[-1] != '/':
+			Folder += '/'
+		OutFiles = glob.glob(Folder + '*.out')#os.listdir(Folder)
+#		print('Outfiles: ' + str(OutFiles))
+		for File in OutFiles:
+			if File.split('.out')[0][-1] == '_':
+#				print('Correcting Filename of ' + File)
+				File = File.split('.out')[0][0:-1] + '.out'
+#				print('... to: ' + File)
+				
+#			print('File: ' + str(File))
+			TargetID = File.split('/')[-1].split('.out')[0]
+			if TargetID not in AllTargetDict.keys():
+				AllTargetDict[TargetID] = {}
+			if 'pp_run' in FolderParts:
+				if 'Finished' in FolderParts:
+					AllTargetDict[TargetID]['pp_runStatus'] = True
+				else:
+					AllTargetDict[TargetID]['pp_runStatus'] = False
+				path = GetJobWorkDir(File)
+				if path == False:
+					print('Failed to get path for job: ' + str(TargetID))
+					path = 'unknown'
+				AllTargetDict[TargetID]['path'] = path
+			elif 'pp_ident' in Folder:
+				if 'Finished' in FolderParts:
+					AllTargetDict[TargetID]['pp_identStatus'] = True
+				else:
+					AllTargetDict[TargetID]['pp_identStatus'] = False
+			elif 'pp_distill' in Folder:
+				if 'Finished' in FolderParts:
+					AllTargetDict[TargetID]['pp_distillStatus'] = True
+				else:
+					AllTargetDict[TargetID]['pp_distillStatus'] = False
+			AllTargetDict[TargetID]['lcLink'] = TargetID + '_lcAll.txt'#need to make this file later
+	for Target in AllTargetDict:
+		if 'pp_identStatus' not in AllTargetDict[Target].keys():
+			AllTargetDict[Target]['pp_identStatus'] = 'unknown'
+		if 'pp_runStatus' not in AllTargetDict[Target].keys():
+			AllTargetDict[Target]['pp_runStatus'] = 'unknown'
+		if 'pp_distillStatus' not in AllTargetDict[Target].keys():
+			AllTargetDict[Target]['pp_distillStatus'] = 'unknown'
+	return(AllTargetDict)
 
-			###################################
-			####### Determine Amplitude #######
-			###################################
-			#### Sort Magnitude Vector ####
-			magSorted = np.sort(mag)
-
-			#### Find Max and Min ####
-			maxAmp_list = []
-			minAmp_list = []
-			for i in range(0,number):
-				maxAmp_list.append(magSorted[i])
-				minAmp_list.append(magSorted[Length-1-i])
-
-			maxAmp = np.mean(maxAmp_list)
-			print("--- The Maximum Amplitude is %r magnitudes ---" % maxAmp)
-			minAmp = np.mean(minAmp_list)
-			print("--- The Minimum Amplitude is %r magnitudes ---" % minAmp)
-
-			avgAmplitude = minAmp - maxAmp
-			print("--- The Lower Limit Amplitude is %r magnitudes ---" % avgAmplitude)
-
-			###################################
-			######### Determine Period ########
-			###################################
-			maxTime_list = []
-			minTime_list = []
-			for i in range(0,number):
-				Imax_i = np.where(mag==maxAmp_list[i])
-				Imin_i = np.where(mag==minAmp_list[i])
-
-				maxTime_list.append(time[Imax_i][0])
-				minTime_list.append(time[Imin_i][0])
-
-			maxTime = np.mean(maxTime_list)
-			print("--- The Maximum Time is %r Julian Days ---" % maxTime)
-			minTime = np.mean(minTime_list)
-			print("--- The Minimum Time is %r Julian Days ---" % minTime)
-
-			avgTime = minTime - maxTime
-			print("--- The Lower Limit Period is %r Julian Days ---" % avgTime)
-			day_hour = 24
-			hours = avgTime*day_hour
-			minutes = hours*60
-			print("--- The Lower Limit Period is %r Minutes ---" % minutes)
-
-			###################################
-			######## Constrain Values #########
-			###################################
-			sigma = np.median(err)
-			uncertainty = (sigma/avgAmplitude)*100
-			if uncertainty >= 100:
-				print("--- The Amplitude is within the Noise ---")
-				avgAmplitude = 0
-
-			stddev = np.std(time)
-			if avgTime <= 2*stddev:
-				avgTime = 0
-
-			###################################
-			### Write Results to Text File ####
-			###################################
-
-			phot,string_name = data.split("_",1)
-			objname,other = string_name.split(".dat")
-			#outfile = 'LCanalysis_'+objname+'.txt'
-			outfile = 'LCanalysis_'+true_object+'.txt'
-
-			f= open(outfile,"w+")
-
-			header1 = '# Asteroid' + ' ' + str(objname) + ' ' + 'Lightcurve Analysis Results' + '\n'
-			header2 = '# Amplitude (mag)' + ' ' + 'Period (min)' + '\n'
-			data_row = str(avgAmplitude) + ' ' + str(minutes) + '\n'
-
-			f.write(header1)
-			f.write(header2)
-			f.write(data_row)
-
-			f.close()
-
-			###################################
-			### Move output to new folder ####
-			###################################
-
-			#directory = os.path.dirname('/Users/user/Desktop/LCanalysis') ##Test Directory
-			if not os.path.exists(LMIdata_dir+'LCanalysis'):
-				os.mkdir(LMIdata_dir+'LCanalysis')
-			
-			#for filename in glob.iglob('LCanalysis_*.txt'):
-				#old_name = '/Users/user/Desktop/LCanalysis/'+filename ##Test Name
-			new_name = LMIdata_dir+'/LCanalysis/' + outfile
-			os.rename(outfile,new_name)
+def ProcessPhotFiles(PhotFile,ThisPath,TargetID):
+	with open(ThisPath + TargetID + '_lcAll.txt', 'a') as outfile:
+		outfile.write('This Item: ' + PhotFile)
+		outfile.write('This Path:' + ThisPath)
+		outfile.write('')
+		outfile.write('')
+		try:
+			with open(PhotFile + '.AmpPer') as infile:
+				outfile.write('')
+				outfile.write('.AmpPer Data: ')
+				for line in infile:
+					outfile.write(line)
+				outfile.write('')
+		except:
+			print('Failed to read ' + str(PhotFile + '.AmpPer'))
+		try:
+			with open(PhotFile + '.vartools_t_mag_err') as infile:
+				outfile.write('')
+				outfile.write('.vartools_t_mag_err Data: ')
+				for line in infile:
+					outfile.write(line)
+				outfile.write('')
+		except:
+			print('Failed to read ' + str(PhotFile + '.vartools_t_mag_err'))
+		try:
+			with open(PhotFile + '.vartools_stats') as infile:
+				outfile.write('')
+				outfile.write('.vartools_stats Data: ')#label for the section in the file
+				for line in infile:
+					outfile.write(line)
+				outfile.write('')
+		except:
+			print('Failed to read ' + str(PhotFile + '.vartools_stats'))
+		try:
+			with open(PhotFile + '.vartools_FinalResults') as infile:
+				outfile.write('')
+				outfile.write('.vartools_FinalResults Data: ')
+				for line in infile:
+					outfile.write(line)
+				outfile.write('')
+		except:
+			print('Failed to read ' + str(PhotFile + '.vartools_FinalResults'))
 
 
+def GetTargetInfo(TargetID,SingleTargetDict):
+#	print(TargetID + ' SingleTargetDict=' + str(SingleTargetDict))
+	ThisPath = SingleTargetDict['path']
+	if ThisPath[-1] != '/':
+		ThisPath += '/'
 
-exit()#let's not and saw we did 5//517 COC
-###################################
-###################################
-# REPEAT for 150920 in VR filter #
-###################################
-###################################
+	#ldac files from pp_run
+	SingleTargetDict['ldacCount'] = len(glob.glob(ThisPath + '*.ldac'))
 
-directory_filter = LMIdata_dir+"150920/" ##Multiple filters, handle differently
+	#Find results html file:
+	ResultFile = glob.glob(ThisPath + '.diagnostics/*results.html')
+	ResultFileType = type(ResultFile).__name__
+#	print(ResultFile)
+	if ResultFileType == 'None':
+		ResultFile == 'missing'
+#	print('ResultFile for path ' + ThisPath + '.diagnostics/ with ' + TargetID + ': ')
+	SingleTargetDict['DiagLink'] = ResultFile
 
-object = os.listdir(directory_filter)
-print(object)
-for pointing in object:
-	if pointing.startswith(('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
-		true_object = pointing
-		print(true_object)
-		object_dir = directory_filter + true_object + "/" + true_object + "_VR/"
-		for filename in os.listdir(object_dir):
-			data = directory_filter + true_object + "/" + true_object + "_VR/" + "photometry_" + true_object + ".dat.varformat"
-			if os.path.exists(data) == True:
-				time,mag,err = np.loadtxt(data,unpack=True)
-			else:
-				mag = np.zeros(10)
-				time = np.zeros(10)
-				err = np.zeros(10)
-				print(true_object, "has bad photometry")
+	#pp_run files *ldac
 	
-		###################################
-		###### Determine # of Points ######
-		###################################
-		Length = len(mag)
-		print("--- There are %d exposures ---" % Length)
-		number = int(0.1*Length)
-		if number == 1:
-			number = 2
-		if number == 0:
-			number = 1
+	# ident files are position dat files
+	pp_identCount = len(glob.glob(ThisPath + 'positions*.dat'))
+	SingleTargetDict['pp_identCount'] = pp_identCount
+	
+	# distill files are photfiles, see later
+	
+	# pp_parseStatus# maybe later
+	pp_parseStatus = ''
+	SingleTargetDict['pp_parseStatus'] = pp_parseStatus
 		
-		###################################
-		####### Determine Amplitude #######
-		###################################
-		#### Sort Magnitude Vector ####
-		magSorted = np.sort(mag)
-		#### Find Max and Min ####
-		maxAmp_list = []
-		minAmp_list = []
-		for i in range(0,number):
-			maxAmp_list.append(magSorted[i])
-			minAmp_list.append(magSorted[Length-1-i])
-		
-		maxAmp = np.mean(maxAmp_list)
-		print("--- The Maximum Amplitude is %r magnitudes ---" % maxAmp)
-		minAmp = np.mean(minAmp_list)
-		print("--- The Minimum Amplitude is %r magnitudes ---" % minAmp)
-		
-		avgAmplitude = minAmp - maxAmp
-		print("--- The Lower Limit Amplitude is %r magnitudes ---" % avgAmplitude)
-		
-		###################################
-		######### Determine Period ########
-		###################################
-		maxTime_list = []
-		minTime_list = []
-		for i in range(0,number):
-			Imax_i = np.where(mag==maxAmp_list[i])
-			Imin_i = np.where(mag==minAmp_list[i])
-			
-			maxTime_list.append(time[Imax_i][0])
-			minTime_list.append(time[Imin_i][0])
-		
-		maxTime = np.mean(maxTime_list)
-		print("--- The Maximum Time is %r Julian Days ---" % maxTime)
-		minTime = np.mean(minTime_list)
-		print("--- The Minimum Time is %r Julian Days ---" % minTime)
-		
-		avgTime = minTime - maxTime
-		print("--- The Lower Limit Period is %r Julian Days ---" % avgTime)
-		day_hour = 24
-		hours = avgTime*day_hour
-		minutes = hours*60
-		print("--- The Lower Limit Period is %r Minutes ---" % minutes)
-		
-		###################################
-		######## Constrain Values #########
-		###################################
-		sigma = np.median(err)
-		uncertainty = (sigma/avgAmplitude)*100
-		if uncertainty >= 100:
-			print("--- The Amplitude is within the Noise ---")
-			avgAmplitude = 0
-		
-		stddev = np.std(time)
-		if avgTime <= 2*stddev:
-			avgTime = 0
-		
-		###################################
-		### Write Results to Text File ####
-		###################################
-		
-		phot,string_name = data.split("_",1)
-		objname,other = string_name.split(".dat")
-		#outfile = 'LCanalysis_'+objname+'.txt'
-		outfile = 'LCanalysis_'+true_object+'.txt'
-		
-		f= open(outfile,"w+")
-		
-		header1 = '# Asteroid' + ' ' + str(objname) + ' ' + 'Lightcurve Analysis Results' + '\n'
-		header2 = '# Amplitude (mag)' + ' ' + 'Period (min)' + '\n'
-		data_row = str(avgAmplitude) + ' ' + str(minutes) + '\n'
-		
-		f.write(header1)
-		f.write(header2)
-		f.write(data_row)
-		
-		f.close()
-		
-		###################################
-		### Move output to new folder ####
-		###################################
-		
-		#directory = os.path.dirname('/Users/user/Desktop/LCanalysis') ##Test Directory
-		if not os.path.exists(LMIdata_dir+'LCanalysis'):
-			os.mkdir(LMIdata_dir+'LCanalysis')
-		
-		#for filename in glob.iglob('LCanalysis_*.txt'):
-		#old_name = '/Users/user/Desktop/LCanalysis/'+filename ##Test Name
-		new_name = LMIdata_dir+'/LCanalysis/' + outfile
-		os.rename(outfile,new_name)
+	#ppParse File Count
+	ppParseFiles = len(glob.glob(ThisPath + '*.varformat'))
+	SingleTargetDict['ppParseFiles'] = ppParseFiles
+	
+	#AmplitudePeriod Status; to do later 5/6/17 COC
+	AmpPerStatus = ''
+	SingleTargetDict['AmpPerStatus'] = AmpPerStatus
+	
+	#AmplitudePeriod File Count
+	AmpPerCount = len(glob.glob(ThisPath + '*.AmpPer'))
+	SingleTargetDict['AmpPerCount'] = AmpPerCount
+	
+	#Vartools Status (State)
+	VarToolsStatus = ''#later 5/6/17 COC
+	SingleTargetDict['VarToolsStatus'] = VarToolsStatus
+	
+	#Vartools Status File Count
+	VarStatCount = ''#for later 5/6/17 COC
+	SingleTargetDict['VarStatCount'] = VarStatCount
+	
+	#Vartools t_mag_err File Count
+	VartoolsTmpCount = len(glob.glob(ThisPath + '*.vartools_t_mag_err'))
+	SingleTargetDict['VartoolsTmpCount'] = VartoolsTmpCount
+	
+	#Vartools Stats Files Count
+	VarToolsStatsCount = len(glob.glob(ThisPath + '*.vartools_stats'))
+	SingleTargetDict['VarToolsStatsCount'] = VarToolsStatsCount
+
+	#Vartools Final Results File Count
+	VarFinalResultsCount = len(glob.glob(ThisPath + '*.vartools_FinalResults'))
+	SingleTargetDict['VarFinalResultsCount'] = VarFinalResultsCount
+	
+	#Process Phot Files (combine them, etc)
+	PhotFiles = glob.glob(ThisPath + 'photometry_*.dat')
+	PhotFileCount = len(PhotFiles)
+	SingleTargetDict['PhotFileCount'] = PhotFileCount
+	try:
+		os.remove(ThisPath + 'TargetID_lcAll.txt.bak')
+	except:
+		pass
+	try:
+		os.rename(ThisPath + 'TargetID_lcAll.txt', ThisPath + 'TargetID_lcAll.txt.bak')
+	except:
+		pass
+	for PhotFile in PhotFiles:
+		ProcessPhotFiles(PhotFile=PhotFile,ThisPath=ThisPath,TargetID=TargetID)
+	return(SingleTargetDict)
+
+def ParseAllFiles(OutputFolder,outputfile='A520results.html'):
+	'''OutputFolder should be the output folder from the book keeping, e.g. /common/contrib/classes/ast520/output/'''
+	outputfile = BaseOutputFolder + outputfile#put it there
+	print('Crawling ' + OutputFolder + ' ...')
+	AllTargets = GetAllTargets(OutputFolder)
+	print('Creating table html file and adding rows...')
+	BeginTable(outputfile)
+	for Target in AllTargets.keys():
+		print('Parsing ' + str(Target) + ' ...')
+		AllTargets[Target] = GetTargetInfo(Target, AllTargets[Target])
+		WriteRow(OutputFile=outputfile,
+				ID=Target,
+				FinalStatus='',#maybe later
+				Folder=AllTargets[Target]['path'],
+				DiagLink=AllTargets[Target]['DiagLink'],
+				pp_runStatus=AllTargets[Target]['pp_runStatus'],
+				pp_runCount=AllTargets[Target]['ldacCount'],#careful, different key name!
+				pp_identStatus=AllTargets[Target]['pp_identStatus'],
+				pp_identCount=AllTargets[Target]['pp_identCount'],
+				pp_distillStatus=AllTargets[Target]['pp_distillStatus'],
+				pp_distill_LC_count=AllTargets[Target]['PhotFileCount'],#careful, different key name!
+				pp_parseStatus=AllTargets[Target]['pp_parseStatus'],
+				pp_parse_varformatCount=AllTargets[Target]['ppParseFiles'],#careful, different key name!
+				AmpPerStatus=AllTargets[Target]['AmpPerStatus'],
+				AmpPerCount=AllTargets[Target]['AmpPerCount'],
+				VarToolsStatus=AllTargets[Target]['VarToolsStatus'],
+				VartoolsTmpCount=AllTargets[Target]['VartoolsTmpCount'],
+				VarStatCount=AllTargets[Target]['VarStatCount'],
+				VarFinalCount=AllTargets[Target]['VarFinalResultsCount'],
+				lcLink=AllTargets[Target]['lcLink'])
+	print('Finishing html file...')
+	FinishTable(outputfile)
+	print('Done!')
+
+ParseAllFiles(OutputFolder=BaseOutputFolder)
